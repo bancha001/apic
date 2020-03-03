@@ -1,0 +1,27 @@
+info:
+  version: 1.0.0
+  title: Metadata Update
+  name: metadata-update
+gateways:
+  - datapower-api-gateway
+plans:
+  basic:
+    rate-limits:
+      default:
+        value: 100/1hour
+    title: Basic
+    description: Basic
+    approval: false
+visibility:
+  view:
+    type: public
+    orgs: []
+    enabled: true
+  subscribe:
+    type: authenticated
+    orgs: []
+    enabled: true
+product: 1.0.0
+apis:
+  metadata-update1.0.0:
+    $ref: post-metadata-update_1.0.0.yaml

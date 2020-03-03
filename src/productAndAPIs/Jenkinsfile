@@ -1,0 +1,69 @@
+/**
+    * Licensed materials - Property of IBM
+    * 6949-63D
+    * Developed by Digital Integration Practice
+    * (C) Copyright IBM Corp. 2016 All Rights Reserved.
+    * 
+    * US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract * with IBM Corp. 
+    This asset is provided ``as is'' and any expressed or implied warranties, including, but not limited to, the implied warranties and fitness for a particular purpose are disclaimed. in no event shall IBM be liable for any direct, indirect, incidental, special, exemplary, or consequential damages.
+    This module provides Jenkins pipline flow with various stages
+    * Contributors:
+    *   Balkrishna Mangal Atmaram Londhe
+*/
+def branchName;
+node('icp') {
+
+	stage('Checkout Code') {
+      try {               
+	      checkout scm 
+		  workspace = pwd ()
+		  commit_username=sh(returnStdout: true, script: '''username=$(git log -1 --pretty=%ae) 
+		  echo ${username%@*} ''').trim();
+		  commit_Email=sh(returnStdout: true, script: '''Email=$(git log -1 --pretty=%ae) 								
+		  echo $Email''').trim();				
+		  echo commit_username
+		  echo commit_Email
+		  branchName=sh(returnStdout: true, script: 'git name-rev --name-only HEAD').trim()
+		  echo branchName                 
+          } catch (e) {
+			currentBuild.result='FAILURE'
+			throw e
+			} catch (error) {
+				currentBuild.result='FAILURE'
+				throw error
+		}
+	}
+				
+	stage ('Deploy to ICP cluster') { 
+	  try {
+		  if ("$branchName" == "remotes/origin/development") {
+			  sh """
+			  echo "Chnaging directory to product.yaml file"
+		      cd src/productAndAPIs
+			  echo APIC login
+			  apic login --server apim.apiccluster-442983326460a9c8264b8ec5b8de42d2-0001.au-syd.containers.appdomain.cloud --username bancha --password g00dday! --realm provider/default-idp-2
+		      echo Deploy APIC in IKS cluster
+			  apic products:publish product.yaml --catalog bendigo --org open-banking --server apim.apiccluster-442983326460a9c8264b8ec5b8de42d2-0001.au-syd.containers.appdomain.cloud
+		      """
+		  } else if ("$branchName" == "remotes/origin/test") {
+			  sh """
+			  echo "Chnaging directory to product.yaml file"
+		      cd src/productAndAPIs
+			  echo APIC login
+			  apic login --server apim.apiccluster-442983326460a9c8264b8ec5b8de42d2-0001.au-syd.containers.appdomain.cloud --username duke --password g00dday! --realm provider/default-idp-2
+			  echo Deploy APIC in IKS cluster
+		      apic products:publish product.yaml --catalog bendigo --org open-banking-test --server apim.apiccluster-442983326460a9c8264b8ec5b8de42d2-0001.au-syd.containers.appdomain.cloud
+		      """			  
+		  }		  
+		  echo "logout from APIC"
+		  sh """apic logout --server apim.apiccluster-442983326460a9c8264b8ec5b8de42d2-0001.au-syd.containers.appdomain.cloud"""
+		  } catch (e) {
+		    currentBuild.result='FAILURE'
+			throw e
+			} catch (error) {
+			  currentBuild.result='UNSTABLE'
+		}
+	}
+}
+
+			
